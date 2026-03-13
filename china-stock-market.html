@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国股市 | China's Stock Market</title>
+
+    <!-- Fonts: Syne (bold display) + Space Mono (terminal) + Noto fonts (Chinese chars) -->
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&family=Noto+Serif+SC:wght@600;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           THEME: Chinese Trading Terminal
+           Deep black + Chinese red + gold
+           =========================================== */
+        :root {
+            --bg:          #080808;
+            --bg2:         #0f0f0f;
+            --red:         #C8102E;
+            --red-soft:    rgba(200,16,46,0.12);
+            --red-border:  rgba(200,16,46,0.25);
+            --gold:        #D4A017;
+            --gold-soft:   rgba(212,160,23,0.12);
+            --gold-border: rgba(212,160,23,0.3);
+            --green:       #00A550;
+            --text:        #EDE8E0;
+            --text-dim:    rgba(237,232,224,0.55);
+            --text-muted:  rgba(237,232,224,0.3);
+            --border:      rgba(237,232,224,0.07);
+            --font-d:      'Syne', sans-serif;
+            --font-m:      'Space Mono', monospace;
+            --font-b:      'Noto Sans SC', sans-serif;
+            --font-zh:     'Noto Serif SC', serif;
+
+            /* Clamp-based typography — required for viewport fitting */
+            --t-title:  clamp(2.4rem, 5.5vw, 5.2rem);
+            --t-h2:     clamp(1.4rem, 2.6vw, 2.6rem);
+            --t-h3:     clamp(1.2rem, 2.2vw, 2rem);
+            --t-body:   clamp(0.9rem, 1.35vw, 1.35rem);
+            --t-small:  clamp(0.75rem, 0.95vw, 1rem);
+            --t-hanzi:  clamp(3.5rem, 8vw, 7.5rem);
+            --t-mono:   clamp(0.8rem, 1.1vw, 1.05rem);
+
+            /* Spacing */
+            --pad:   clamp(2rem, 4.5vw, 5rem);
+            --gap:   clamp(0.8rem, 2vw, 2.2rem);
+            --gap-s: clamp(0.4rem, 1vw, 1.1rem);
+
+            /* Animation */
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* === RESET === */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ===========================================
+           VIEWPORT BASE CSS (mandatory)
+           =========================================== */
+        html, body { height: 100%; overflow-x: hidden; }
+        html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: var(--bg);
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            max-height: 100%;
+            overflow: hidden;
+            padding: var(--pad);
+            padding-top: calc(var(--pad) * 0.8);
+            padding-bottom: var(--pad);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* After title+rule, the body area stretches to fill remaining space */
+        .two-col, .stats-grid, .blist {
+            flex: 1;
+        }
+
+        /* No ticker on some slides */
+        .slide.no-ticker .slide-content { padding-bottom: var(--pad); }
+        .slide.no-ticker .ticker { display: none; }
+
+        /* Divider/transition slide stays centered */
+        .divider-slide .slide-content { justify-content: center; padding-top: var(--pad); }
+
+        img { max-width: 100%; max-height: min(55vh, 480px); object-fit: contain; }
+
+        /* Responsive breakpoints */
+        @media (max-height: 700px) {
+            :root { --pad: clamp(0.8rem,3vw,2rem); --gap: clamp(0.4rem,1.2vw,1rem); --t-h2: clamp(1rem,3vw,1.8rem); }
+        }
+        @media (max-height: 600px) {
+            :root { --pad: clamp(0.6rem,2.5vw,1.5rem); --t-title: clamp(1.2rem,4vw,2rem); --t-body: clamp(0.62rem,1.1vw,0.85rem); }
+            .nav-dots, .decorative { display: none; }
+        }
+        @media (max-height: 500px) {
+            :root { --pad: clamp(0.5rem,2vw,1rem); --t-title: clamp(1rem,3.5vw,1.5rem); --t-h2: clamp(0.9rem,2.5vw,1.25rem); }
+        }
+        @media (max-width: 600px) {
+            .two-col { grid-template-columns: 1fr !important; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.2s !important; }
+            html { scroll-behavior: auto; }
+        }
+
+        /* ===========================================
+           BASE TYPOGRAPHY
+           =========================================== */
+        body { font-family: var(--font-b); color: var(--text); background: var(--bg); }
+        h1 { font-family: var(--font-d); font-size: var(--t-title); font-weight: 800; line-height: 1.05; }
+        h2 { font-family: var(--font-d); font-size: var(--t-h2); font-weight: 800; line-height: 1.1; overflow-wrap: break-word; word-break: break-word; }
+        h3 { font-family: var(--font-d); font-size: var(--t-h3); font-weight: 700; }
+        p  { font-size: var(--t-body); line-height: 1.6; color: var(--text-dim); }
+
+        /* ===========================================
+           GRID BACKGROUND TEXTURE
+           =========================================== */
+        .slide::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(200,16,46,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(200,16,46,0.025) 1px, transparent 1px);
+            background-size: 44px 44px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===========================================
+           ENTRANCE ANIMATIONS
+           Triggered by .visible class via IntersectionObserver
+           =========================================== */
+        .reveal       { opacity: 0; transform: translateY(26px);   transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
+        .reveal-left  { opacity: 0; transform: translateX(-36px);  transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
+        .reveal-scale { opacity: 0; transform: scale(0.92);        transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
+
+        .slide.visible .reveal,
+        .slide.visible .reveal-left,
+        .slide.visible .reveal-scale { opacity: 1; transform: none; }
+
+        /* Stagger delays for sequential reveals */
+        .slide.visible .d1 { transition-delay: 0.04s; }
+        .slide.visible .d2 { transition-delay: 0.12s; }
+        .slide.visible .d3 { transition-delay: 0.20s; }
+        .slide.visible .d4 { transition-delay: 0.28s; }
+        .slide.visible .d5 { transition-delay: 0.36s; }
+        .slide.visible .d6 { transition-delay: 0.44s; }
+        .slide.visible .d7 { transition-delay: 0.52s; }
+        .slide.visible .d8 { transition-delay: 0.60s; }
+
+        /* ===========================================
+           PROGRESS BAR (top of viewport)
+           =========================================== */
+        #progressBar {
+            position: fixed; top: 0; left: 0;
+            height: 2px; background: var(--red);
+            z-index: 1000; transition: width 0.35s ease;
+            width: 0%;
+        }
+
+        /* ===========================================
+           NAV DOTS (right edge)
+           =========================================== */
+        #navDots {
+            position: fixed; right: clamp(0.6rem, 1.5vw, 1.2rem);
+            top: 50%; transform: translateY(-50%);
+            z-index: 100; display: flex; flex-direction: column; gap: 7px;
+        }
+        .nav-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--text-muted); cursor: pointer;
+            transition: all 0.3s ease; border: none;
+        }
+        .nav-dot.active { background: var(--red); transform: scale(1.6); }
+
+        /* ===========================================
+           SECTION LABEL — red monospace tag above heading
+           =========================================== */
+        .section-label {
+            font-family: var(--font-m);
+            font-size: var(--t-small);
+            color: var(--red);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            display: flex; align-items: center; gap: 0.6rem;
+            margin-bottom: clamp(0.35rem, 1vh, 0.75rem);
+        }
+        .section-label::after {
+            content: ''; width: 2.5rem; height: 1px;
+            background: var(--red); opacity: 0.5;
+        }
+
+        /* Red rule under h2 */
+        .red-rule {
+            width: clamp(1.8rem, 3.5vw, 3.5rem);
+            height: 2px; background: var(--red);
+            margin: clamp(0.3rem, 0.8vh, 0.7rem) 0 clamp(1rem, 2.5vh, 2.5rem);
+        }
+
+        /* ===========================================
+           CARDS
+           =========================================== */
+        .card {
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--border);
+            border-top: 2px solid var(--red);
+            border-radius: 1px;
+            padding: clamp(0.6rem, 1.5vw, 1.2rem);
+        }
+        .card-gold  { border-top-color: var(--gold); }
+        .card-green { border-top-color: var(--green); }
+        .card-dim   { border-top-color: rgba(255,255,255,0.15); }
+
+        /* ===========================================
+           STAT NUMBERS — big red data points
+           =========================================== */
+        .stat-num {
+            font-family: var(--font-m);
+            font-size: clamp(1.8rem, 5.5vw, 4.5rem);
+            font-weight: 700; color: var(--red); line-height: 1;
+        }
+        .stat-gold { color: var(--gold); }
+        .stat-label {
+            font-size: var(--t-small); color: var(--text-dim);
+            margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.08em;
+        }
+
+        /* ===========================================
+           QUOTE CARDS
+           =========================================== */
+        .quote-text {
+            font-family: var(--font-d);
+            font-size: clamp(0.85rem, 1.8vw, 1.2rem);
+            font-weight: 700; line-height: 1.35; color: var(--text);
+        }
+        .quote-text::before { content: '"'; color: var(--red); }
+        .quote-text::after  { content: '"'; color: var(--red); }
+        .quote-src {
+            font-family: var(--font-m); font-size: var(--t-small);
+            color: var(--text-muted); margin-top: 0.5rem;
+        }
+
+        /* ===========================================
+           HANZI DISPLAY — large Chinese characters
+           =========================================== */
+        .hanzi {
+            font-family: var(--font-zh);
+            font-size: var(--t-hanzi);
+            color: var(--red); font-weight: 900; line-height: 1;
+        }
+        .hanzi-inline {
+            font-family: var(--font-zh);
+            color: var(--red); font-weight: 600;
+        }
+
+        /* ===========================================
+           TEMPLATE BADGE — marks partner's slides
+           =========================================== */
+        .tmpl-badge {
+            font-family: var(--font-m); font-size: var(--t-small);
+            background: var(--gold-soft); color: var(--gold);
+            border: 1px solid var(--gold-border);
+            padding: 0.15em 0.65em; border-radius: 2px;
+            display: inline-block;
+            margin-bottom: clamp(0.4rem, 1vh, 0.8rem);
+        }
+
+        /* ===========================================
+           BULLET LIST
+           =========================================== */
+        .blist {
+            list-style: none;
+            display: flex; flex-direction: column;
+            justify-content: space-evenly;
+        }
+        .blist li {
+            font-size: var(--t-body); line-height: 1.5; color: var(--text-dim);
+            padding-left: 1.2em;
+            text-indent: -1.2em;
+        }
+        .blist li::before {
+            content: '▸ '; color: var(--red);
+            font-size: 0.75em;
+        }
+        strong { color: var(--text); }
+
+        /* ===========================================
+           TWO COLUMN GRID
+           =========================================== */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.8rem, 2.5vw, 2.5rem);
+            align-items: stretch;
+        }
+
+        /* ===========================================
+           STATS GRID — responsive card grid
+           =========================================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+            gap: clamp(0.5rem, 1.5vw, 1.2rem);
+            align-content: center;
+        }
+
+        /* ===========================================
+           COMPARISON TABLE
+           =========================================== */
+        .ctable { width: 100%; border-collapse: collapse; }
+        .ctable th {
+            font-family: var(--font-m); font-size: var(--t-small);
+            color: var(--text-muted); text-align: left;
+            padding: 0.4em 0.8em; border-bottom: 1px solid var(--border);
+            text-transform: uppercase; letter-spacing: 0.1em;
+        }
+        .ctable td {
+            font-size: var(--t-body); padding: 0.5em 0.8em;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+        .ctable td:first-child { color: var(--text-muted); width: 32%; }
+        .ctable .cn { color: var(--red); font-weight: 600; }
+        .ctable tr:hover td { background: rgba(255,255,255,0.015); }
+
+        /* ===========================================
+           TICKER TAPE — scrolling stock ticker at bottom
+           =========================================== */
+        .ticker {
+            flex-shrink: 0;
+            width: 100%;
+            height: clamp(1.4rem, 2.5vh, 1.9rem);
+            background: rgba(200,16,46,0.07);
+            border-top: 1px solid rgba(200,16,46,0.18);
+            overflow: hidden; display: flex; align-items: center;
+            z-index: 2;
+        }
+        .ticker-inner {
+            display: flex; white-space: nowrap;
+            animation: scroll-ticker 35s linear infinite;
+            font-family: var(--font-m); font-size: var(--t-small);
+            color: rgba(200,16,46,0.8); gap: 2.5rem;
+        }
+        @keyframes scroll-ticker {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+
+        /* ===========================================
+           TITLE SLIDE SPECIFICS
+           =========================================== */
+        .title-slide .slide-content {
+            justify-content: flex-end;
+        }
+        /* Giant ghost character background */
+        .bg-char {
+            position: absolute;
+            right: -1vw; top: 50%; transform: translateY(-50%);
+            font-family: var(--font-zh);
+            font-size: clamp(10rem, 32vw, 26rem);
+            font-weight: 900;
+            color: rgba(200,16,46,0.055);
+            line-height: 1; user-select: none; pointer-events: none;
+            z-index: 0;
+        }
+        .kicker {
+            font-family: var(--font-m); font-size: var(--t-small);
+            color: var(--red); text-transform: uppercase; letter-spacing: 0.2em;
+            margin-bottom: clamp(0.6rem, 1.8vh, 1.4rem);
+        }
+        .t-sub {
+            font-size: clamp(0.8rem, 1.6vw, 1.1rem); color: var(--text-dim);
+            margin-top: clamp(0.6rem, 1.5vh, 1.2rem); max-width: 52ch;
+            line-height: 1.55;
+        }
+        .t-meta {
+            font-family: var(--font-m); font-size: var(--t-small);
+            color: var(--text-muted);
+            margin-top: clamp(1.2rem, 3vh, 2.5rem);
+            display: flex; gap: 1.8rem; align-items: center;
+        }
+        .t-meta-line {
+            display: block; width: 2rem; height: 1px; background: var(--border);
+        }
+
+        /* ===========================================
+           SECTION DIVIDER SLIDE
+           =========================================== */
+        .divider-slide .ghost-num {
+            position: absolute; right: var(--pad); bottom: calc(var(--pad) + 2rem);
+            font-family: var(--font-m);
+            font-size: clamp(5rem, 18vw, 14rem);
+            font-weight: 700;
+            color: rgba(200,16,46,0.08);
+            line-height: 1; user-select: none;
+            z-index: 0;
+        }
+        .divider-slide h2 { font-size: clamp(1.8rem, 5.5vw, 4.2rem); max-width: 14ch; }
+        .divider-slide p  { max-width: 46ch; margin-top: clamp(0.6rem, 1.5vh, 1.2rem); }
+
+        /* ===========================================
+           MINI INLINE TAGS
+           =========================================== */
+        .tag {
+            font-family: var(--font-m); font-size: var(--t-small);
+            padding: 0.15em 0.55em; border-radius: 2px; display: inline-block;
+        }
+        .tag-r { background: var(--red-soft);  color: var(--red);  border: 1px solid var(--red-border); }
+        .tag-g { background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border); }
+
+        /* ===========================================
+           GUBA POST CARDS — terminal-style
+           =========================================== */
+        .post-card {
+            background: rgba(255,255,255,0.022);
+            border: 1px solid var(--border);
+            border-left: 2px solid var(--red);
+            padding: clamp(0.5rem, 1.2vw, 1rem);
+            border-radius: 1px;
+        }
+        .post-from {
+            font-family: var(--font-m); font-size: var(--t-small);
+            color: var(--red); margin-bottom: 0.35rem;
+        }
+        .post-body { font-size: var(--t-body); color: var(--text); line-height: 1.45; }
+        .post-zh   { font-family: var(--font-m); font-size: var(--t-small); color: var(--text-muted); margin-top: 0.3rem; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Progress bar — fills red as you advance through slides -->
+    <div id="progressBar"></div>
+
+    <!-- Navigation dots — right edge -->
+    <nav id="navDots" aria-label="Slide navigation"></nav>
+
+
+    <!-- ================================================
+         SLIDE 1 — TITLE
+         ================================================ -->
+    <section class="slide title-slide" id="s1">
+        <div class="bg-char" aria-hidden="true">股</div>
+        <div class="slide-content">
+            <p class="kicker reveal d1">CHIN 3302 · Chinese Culture · Spring 2026</p>
+            <h1 class="reveal d2">中国股市<br><span style="font-family:var(--font-m); font-size:var(--t-small); color:var(--red); font-weight:400; letter-spacing:0.12em;">Zhōngguó Gǔshì</span><br>China's<br>Stock Market</h1>
+            <p class="t-sub reveal d3">
+                Gambling, leeks, stock gods, feng shui, and why
+                200 million retail investors are stir-frying their life savings.
+            </p>
+            <div class="t-meta reveal d4">
+                <span class="t-meta-line"></span>
+                <span>周子问 (Zhōu Zǐwèn) "Bear" &amp; Jorge F.</span>
+            </div>
+            <svg aria-label="Cowrie shell (贝)" style="position:absolute; bottom:var(--gap); right:var(--gap); width:70px; height:70px; opacity:0.45;" viewBox="0 0 100 100">
+                <ellipse cx="50" cy="50" rx="32" ry="44" fill="none" stroke="var(--gold)" stroke-width="2"/>
+                <line x1="50" y1="10" x2="50" y2="90" stroke="var(--gold)" stroke-width="1.5" opacity="0.5" stroke-dasharray="4,3"/>
+                <text x="50" y="58" text-anchor="middle" font-size="28" fill="var(--gold)" font-family="var(--font-b)">贝</text>
+            </svg>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>上证综指 +2.34% ▲</span><span>深证成指 −0.87% ▼</span>
+                <span>茅台 +3.1% ▲</span><span>BYD +0.4% ▲</span>
+                <span>A股 日成交额 3.4万亿</span><span>韭菜成熟了</span>
+                <span>主力出货鉴定完毕</span><span>关灯吃面</span>
+                <span>满仓 · 套牢 · 割肉 · 站岗</span><span>大V被封号</span>
+                <!-- duplicate for seamless loop -->
+                <span>上证综指 +2.34% ▲</span><span>深证成指 −0.87% ▼</span>
+                <span>茅台 +3.1% ▲</span><span>BYD +0.4% ▲</span>
+                <span>A股 日成交额 3.4万亿</span><span>韭菜成熟了</span>
+                <span>主力出货鉴定完毕</span><span>关灯吃面</span>
+                <span>满仓 · 套牢 · 割肉 · 站岗</span><span>大V被封号</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDES 2–8 — JORGE'S SECTION: Origins of Value & Markets
+         ================================================ -->
+
+    <!-- SLIDE 2 — Value Started with Shells -->
+    <section class="slide" id="s2">
+        <div class="bg-char" aria-hidden="true" style="font-size:clamp(8rem,26vw,22rem); color:rgba(212,160,23,0.06);">贝</div>
+        <div class="slide-content">
+            <div class="section-label reveal d1">Part 01 · Origins of Value</div>
+            <h2 class="reveal d2">Value Started with Shells</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col" style="align-items:center;">
+                <div>
+                    <p class="reveal d3" style="font-family:var(--font-m); color:var(--gold); font-size:var(--t-small); margin-bottom:var(--gap-s);">THE CURRENCY: NATURAL COWRIE SHELLS</p>
+                    <ul class="blist">
+                        <li class="reveal d3"><strong>The Breakthrough:</strong> First separation of "Utility" from "Value."</li>
+                        <li class="reveal d4"><strong>Origin:</strong> The character <span class="hanzi-inline" style="font-size:1.3em;">贝</span> Bèi (Shell) becomes the root for "Wealth."</li>
+                        <li class="reveal d5"><strong>Concept:</strong> Establishing "Shared Agreement" as the basis for a market.</li>
+                    </ul>
+                    <div class="card card-gold reveal d6" style="margin-top:var(--gap);">
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            Every Chinese character related to money contains <span class="hanzi-inline" style="font-size:1.1em;">贝</span> —
+                            <strong style="color:var(--gold);">财 (wealth), 贸 (trade), 货 (goods), 贵 (precious), 购 (buy)</strong>
+                        </p>
+                    </div>
+                </div>
+                <div class="reveal-scale d4" style="display:flex; flex-direction:column; align-items:center; gap:var(--gap-s);">
+                    <img src="img/bei-evolution.png"
+                         alt="Evolution of 贝 character — oracle bone to modern"
+                         style="border-radius:2px; border:1px solid var(--border); max-height:min(35vh,280px);">
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted); text-align:center;">甲骨文 → 金文 → 篆文 → 漢隸 → 贝</p>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>贝 Bèi = Shell = Root of Wealth</span><span>财 Wealth · 贸 Trade · 货 Goods · 贵 Precious</span>
+                <span>Shared Agreement → Market</span><span>Utility ≠ Value</span>
+                <span>贝 Bèi = Shell = Root of Wealth</span><span>财 Wealth · 贸 Trade · 货 Goods · 贵 Precious</span>
+                <span>Shared Agreement → Market</span><span>Utility ≠ Value</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 3 — The Middle Man Concept -->
+    <section class="slide" id="s3">
+        <div class="slide-content">
+            <div class="section-label reveal d1">Part 01 · Foundations</div>
+            <h2 class="reveal d2">The Middle Man Concept</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col">
+                <ul class="blist">
+                    <li class="reveal d3"><strong>The Illusion:</strong> We don't actually trade for money or shells.</li>
+                    <li class="reveal d4"><strong>The Reality:</strong> We trade for the goods and services that money represents.</li>
+                    <li class="reveal d5"><strong>The Middleman:</strong> Currency is just a temporary "storage" for value.</li>
+                    <li class="reveal d6"><strong>Why it Matters:</strong> Stocks are just the next evolution — a "middleman" for ownership.</li>
+                </ul>
+                <div style="display:flex; flex-direction:column; gap:var(--gap-s); align-items:center;">
+                    <img class="reveal d4" src="img/middleman.png"
+                         alt="Money as middleman — apple → $ → bread"
+                         style="border-radius:2px; border:1px solid var(--border); max-height:min(28vh,220px);">
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted); text-align:center;">The Middleman: Good → Currency → Good</p>
+                    <div class="card reveal d6">
+                        <p class="quote-text" style="font-size:clamp(0.8rem,1.6vw,1rem);">Currency is never the destination. It's the vehicle.</p>
+                        <p class="quote-src">Shells → Coins → Paper → Stocks</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>Shells → Coins → Paper → Stocks</span><span>The Middleman Evolves</span>
+                <span>Value ≠ Currency</span><span>Stocks = Ownership Middleman</span>
+                <span>Shells → Coins → Paper → Stocks</span><span>The Middleman Evolves</span>
+                <span>Value ≠ Currency</span><span>Stocks = Ownership Middleman</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 4 — Qin & Han: The Standardized Rules -->
+    <section class="slide" id="s4">
+        <div class="bg-char" aria-hidden="true" style="font-size:clamp(8rem,26vw,22rem); color:rgba(200,16,46,0.04);">秦</div>
+        <div class="slide-content">
+            <div class="section-label reveal d1">Part 01 · 221 BCE</div>
+            <h2 class="reveal d2">Qin &amp; Han: The Standardized Rules</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col" style="align-items:center;">
+                <div>
+                    <ul class="blist">
+                        <li class="reveal d3"><strong>The Ban Liang Coin:</strong> Uniform circular coins with square holes.</li>
+                        <li class="reveal d4"><strong>Market Integration:</strong> One currency for the entire empire.</li>
+                        <li class="reveal d5"><strong>The Friction:</strong> Metal is durable but physically heavy.</li>
+                        <li class="reveal d6"><strong>Modern Parallel:</strong> Establishing the "Listing Rules" for a centralized exchange.</li>
+                    </ul>
+                    <div class="card reveal d7" style="margin-top:var(--gap);">
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            <strong style="color:var(--red);">半两 (Bàn Liǎng)</strong> — "Half a Tael."
+                            The first coin whose name was its weight — an early form of <em>standardized valuation</em>.
+                        </p>
+                    </div>
+                </div>
+                <div class="reveal-scale d4" style="display:flex; gap:var(--gap); align-items:flex-end; justify-content:center;">
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:var(--gap-s);">
+                        <img src="img/knife-money.png"
+                             alt="Ancient Chinese knife money (刀币)"
+                             style="border-radius:2px; border:1px solid var(--border); max-height:min(22vh,170px);">
+                        <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted); text-align:center;">刀币 Knife Money</p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:var(--gap-s);">
+                        <img src="img/ban-liang.png"
+                             alt="半两 coin — Qin Dynasty"
+                             style="border-radius:2px; border:1px solid var(--border); max-height:min(22vh,170px);">
+                        <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted); text-align:center;">半两 Ban Liang</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>半两 Bàn Liǎng · 221 BCE · One Empire, One Currency</span><span>Circle ○ = Heaven · Square □ = Earth</span>
+                <span>Standardized Valuation · Centralized Rules</span><span>Modern Parallel: Exchange Listing Standards</span>
+                <span>半两 Bàn Liǎng · 221 BCE · One Empire, One Currency</span><span>Circle ○ = Heaven · Square □ = Earth</span>
+                <span>Standardized Valuation · Centralized Rules</span><span>Modern Parallel: Exchange Listing Standards</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 5 — Tang Dynasty: Flying Money -->
+    <section class="slide" id="s5">
+        <div class="bg-char" aria-hidden="true" style="font-size:clamp(8rem,26vw,22rem); color:rgba(212,160,23,0.05);">飞</div>
+        <div class="slide-content">
+            <div class="section-label reveal d1">Part 01 · Tang Dynasty · 618–907 CE</div>
+            <h2 class="reveal d2">Tang Dynasty: <span class="hanzi-inline" style="font-size:inherit;">飞钱</span> "Flying Money"</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col">
+                <ul class="blist">
+                    <li class="reveal d3"><strong>The Problem:</strong> Transporting physical metal across long distances was dangerous (bandits).</li>
+                    <li class="reveal d4"><strong>The Innovation:</strong> The <span class="hanzi-inline">飞钱</span> (Fēiqián) system — an early Bill of Exchange.</li>
+                    <li class="reveal d5"><strong>The Mechanism:</strong> Deposit cash in the capital; receive a voucher to redeem at home.</li>
+                    <li class="reveal d6"><strong>The Leap:</strong> Value begins to travel faster than physical objects.</li>
+                </ul>
+                <div style="display:flex; flex-direction:column; gap:var(--gap-s);">
+                    <!-- Visual: Flying Money mechanism diagram -->
+                    <img class="reveal d4" src="img/yuan-bills.png"
+                         alt="Yuan dynasty paper money — early bills of exchange"
+                         style="border-radius:2px; border:1px solid var(--border); max-height:min(30vh,230px);">
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted); text-align:center; margin-top:var(--gap-s);">元代纸币 · Yuan Dynasty Paper Money</p>
+                    <div class="card card-gold reveal d6">
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            <strong style="color:var(--gold);">The precedent:</strong> Value can move as <em>information</em>, not just as physical material. This is the DNA of every stock exchange.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>飞钱 Fēiqián · Flying Money · Tang Dynasty</span><span>Deposit → Voucher → Redeem</span>
+                <span>Value Travels as Information</span><span>Bill of Exchange · 812 CE Legalized</span>
+                <span>飞钱 Fēiqián · Flying Money · Tang Dynasty</span><span>Deposit → Voucher → Redeem</span>
+                <span>Value Travels as Information</span><span>Bill of Exchange · 812 CE Legalized</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 6 — Song Dynasty: The Jiaozi -->
+    <section class="slide" id="s6">
+        <div class="bg-char" aria-hidden="true" style="font-size:clamp(8rem,26vw,22rem); color:rgba(212,160,23,0.05);">交</div>
+        <div class="slide-content">
+            <div class="section-label reveal d1">Part 01 · Song Dynasty · ~1024 CE</div>
+            <h2 class="reveal d2">The <span class="hanzi-inline" style="font-size:inherit;">交子</span> (Jiāozǐ) — The World's First "Stock"</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col" style="align-items:center;">
+                <div>
+                    <ul class="blist">
+                        <li class="reveal d3"><strong>The Context:</strong> A metal shortage in Sichuan leads to private "Promissory Notes."</li>
+                        <li class="reveal d4"><strong>The Jiaozi:</strong> State-authorized paper receipts backed by iron/copper reserves.</li>
+                        <li class="reveal d5"><strong>Market Logic:</strong> People begin trading the receipts <em>instead of the metal.</em></li>
+                        <li class="reveal d6"><strong>The Modern Link:</strong> The Jiaozi is a "Derivative" — trading a promise of ownership.</li>
+                    </ul>
+                    <div class="card card-gold reveal d7" style="margin-top:var(--gap);">
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            <strong style="color:var(--gold);">The world's first paper money</strong> — 600 years before Europe.
+                            When people trade the <em>promise</em> instead of the <em>thing</em>, you have a stock market in embryo.
+                        </p>
+                    </div>
+                </div>
+                <div class="reveal-scale d4" style="display:flex; flex-direction:column; align-items:center; gap:var(--gap-s);">
+                    <img src="img/jiaozi-color.png"
+                         alt="Song Dynasty government-issued Jiaozi banknote, circa 1023 CE"
+                         style="border-radius:2px; border:1px solid var(--gold-border); max-height:min(40vh,320px); filter:sepia(0.15) brightness(0.95);">
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted); text-align:center;">交子 Jiaozi · Song Dynasty · ~1023 CE</p>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>交子 Jiāozǐ · World's First Paper Money · Song Dynasty 1024</span><span>Sichuan Metal Shortage → Paper Receipts</span>
+                <span>Trading the Promise, Not the Thing</span><span>600 Years Before Europe</span>
+                <span>交子 Jiāozǐ · World's First Paper Money · Song Dynasty 1024</span><span>Sichuan Metal Shortage → Paper Receipts</span>
+                <span>Trading the Promise, Not the Thing</span><span>600 Years Before Europe</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 7 — 1990 to Present: The Sleeping Giant Awakes -->
+    <section class="slide" id="s7">
+        <div class="slide-content">
+            <div class="section-label reveal d1">Part 01 · 1990 – Present</div>
+            <h2 class="reveal d2">1990: The Sleeping Giant Awakes</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col" style="align-items:center;">
+                <div>
+                    <ul class="blist">
+                        <li class="reveal d3"><strong>The Re-opening:</strong> Shanghai (SSE) and Shenzhen (SZSE) Exchanges launched in 1990.</li>
+                        <li class="reveal d4"><strong>The Cultural Edge:</strong> 1,000 years of "Paper Promise" history meets modern tech.</li>
+                        <li class="reveal d5"><strong>The Contrast:</strong> US markets (Institutional dominance) vs. China's "Retail" dominance.</li>
+                    </ul>
+                    <div class="stats-grid reveal d6" style="margin-top:var(--gap); grid-template-columns: 1fr 1fr;">
+                        <div class="card">
+                            <div class="stat-num" style="font-size:clamp(1.2rem,3vw,2.2rem);">SSE</div>
+                            <div class="stat-label">Shanghai · Dec 19, 1990</div>
+                        </div>
+                        <div class="card card-gold">
+                            <div class="stat-num stat-gold" style="font-size:clamp(1.2rem,3vw,2.2rem);">SZSE</div>
+                            <div class="stat-label">Shenzhen · Dec 1, 1990</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reveal-scale d4" style="display:flex; flex-direction:column; align-items:center; gap:var(--gap-s);">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1d/Shanghai_Stock_Exchange_Building_at_Pudong.JPG/960px-Shanghai_Stock_Exchange_Building_at_Pudong.JPG"
+                         alt="Shanghai Stock Exchange Building at Pudong"
+                         style="border-radius:2px; border:1px solid var(--border); max-height:min(40vh,320px);">
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted); text-align:center;">上海证券交易所 · SSE Building, Pudong</p>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>上交所 SSE · Dec 19 1990</span><span>深交所 SZSE · Dec 1 1990</span>
+                <span>1000 Years of Paper Promises → Modern Markets</span><span>Retail Dominance · 220M Accounts</span>
+                <span>上交所 SSE · Dec 19 1990</span><span>深交所 SZSE · Dec 1 1990</span>
+                <span>1000 Years of Paper Promises → Modern Markets</span><span>Retail Dominance · 220M Accounts</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         TRANSITION — End of partner section
+         ================================================ -->
+    <section class="slide divider-slide" id="s9">
+        <div class="slide-content">
+            <div class="section-label reveal d1">Now for the fun part</div>
+            <h2 class="reveal d2">
+                The structure exists.<br>
+                But what about<br>
+                <span style="color:var(--red)">the culture?</span>
+            </h2>
+            <p class="reveal d3">
+                Why do 220 million Chinese retail investors behave so
+                differently — and what does it reveal about Chinese culture?
+            </p>
+            <div style="margin-top: var(--gap); display:flex; gap: var(--gap-s); flex-wrap:wrap;" class="reveal d4">
+                <span class="tag tag-r">韭菜 jiǔcài</span>
+                <span class="tag tag-r">主力 zhǔlì</span>
+                <span class="tag tag-r">股吧 Gǔ Bā</span>
+                <span class="tag tag-r">关灯吃面 guān dēng chī miàn</span>
+                <span class="tag tag-g">大V Dà V</span>
+                <span class="tag tag-g">国家队 guójiā duì</span>
+                <span class="tag tag-r">风水 fēngshuǐ</span>
+            </div>
+        </div>
+        <div class="ghost-num" aria-hidden="true">02</div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>韭菜 · 主力 · 股吧 · 关灯吃面 · 满仓 · 套牢 · 割肉 · 大V · 国家队 · 风水</span>
+                <span>韭菜 · 主力 · 股吧 · 关灯吃面 · 满仓 · 套牢 · 割肉 · 大V · 国家队 · 风水</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 10 — Who's Actually Trading?
+         ================================================ -->
+    <section class="slide" id="s10">
+        <div class="slide-content">
+            <div class="section-label reveal d1">The Fundamental Difference</div>
+            <h2 class="reveal d2">Who's Actually Trading?</h2>
+            <div class="red-rule reveal d3"></div>
+            <img class="reveal d3" src="img/whos-trading.webp"
+                 alt="Chinese retail investors watching stock screens at a Shanghai brokerage"
+                 style="width:100%; max-height:min(22vh,180px); object-fit:cover; border-radius:2px; border:1px solid var(--red-border); margin-bottom:var(--gap);"
+                 loading="eager">
+            <table class="ctable reveal d4">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>🇺🇸 USA</th>
+                        <th>🇨🇳 China (A-shares)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Retail % of daily volume</td>
+                        <td>~20%</td>
+                        <td class="cn">80–90%</td>
+                    </tr>
+                    <tr>
+                        <td>Total retail investors</td>
+                        <td>~58 million</td>
+                        <td class="cn">~220 million</td>
+                    </tr>
+                    <tr>
+                        <td>Avg. retail holding period</td>
+                        <td>~90 days</td>
+                        <td class="cn">~40 days</td>
+                    </tr>
+                    <tr>
+                        <td>The "smart money" followed</td>
+                        <td>Goldman, BlackRock, Fed</td>
+                        <td class="cn">Forum Big Vs, "stock gods," government signals</td>
+                    </tr>
+                    <tr>
+                        <td>Short selling</td>
+                        <td>Active — corrects overvaluation</td>
+                        <td style="color:var(--text-muted)">Heavily restricted — no correction mechanism</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>220M retail investors</span><span>80% of daily volume</span>
+                <span>40-day avg hold period</span><span>99.6% of all accounts are retail</span>
+                <span>220M retail investors</span><span>80% of daily volume</span>
+                <span>40-day avg hold period</span><span>99.6% of all accounts are retail</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 11 — 韭菜 The Leek
+         ================================================ -->
+    <section class="slide" id="s11">
+        <div class="slide-content">
+            <div class="section-label reveal d1">The Core Identity</div>
+            <div class="two-col" style="align-items:center;">
+                <div>
+                    <div class="hanzi reveal d2">韭菜</div>
+                    <p class="reveal d2" style="font-family:var(--font-m); color:var(--red); font-size:var(--t-body); margin-top:0.3rem;">jiǔcài · "leek/chive"</p>
+                    <h2 class="reveal d3" style="font-size: clamp(1.4rem,3vw,2.2rem); margin-top: var(--gap-s);">The Defining Metaphor</h2>
+                    <div class="red-rule reveal d4"></div>
+                    <p class="reveal d4">Chinese retail investors' word for themselves. Leeks regrow after being cut — just like retail investors who lose everything, refill their accounts, and come back.</p>
+                    <p class="reveal d5" style="margin-top: var(--gap-s);">
+                        <span class="hanzi-inline">割韭菜 (gē jiǔcài)</span> — "to harvest the leeks" = what big money does to small investors.
+                    </p>
+                </div>
+                <div>
+                    <img class="reveal d3" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Allium_tuberosum_Czosnek_bulwiasty_2021-09-18_03.jpg/600px-Allium_tuberosum_Czosnek_bulwiasty_2021-09-18_03.jpg"
+                         alt="Chinese chives (韭菜) — the leek metaphor"
+                         style="border-radius:2px; border:1px solid var(--red-border); max-height:min(28vh,220px); width:100%; object-fit:cover; margin-bottom:var(--gap-s);">
+                    <div class="card reveal d4" style="margin-bottom: var(--gap-s);">
+                        <p class="quote-text">韭菜集合！<br>Leeks, assemble!</p>
+                        <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--red); margin-top:0.2rem;">jiǔcài jíhé!</p>
+                        <p class="quote-src">— Chinese Weibo, Jan 2021<br>upon seeing the GameStop news</p>
+                    </div>
+                    <div class="card card-gold reveal d5">
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            2015 crash: bottom 85% of households lost
+                            <strong style="color:var(--gold);">250 billion RMB</strong> —
+                            30% of their equity wealth. Top 0.5% gained.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>韭菜 · 割韭菜 · 天选韭菜 · 韭菜成熟了 · 小韭菜 · 散户收割机</span>
+                <span>韭菜 · 割韭菜 · 天选韭菜 · 韭菜成熟了 · 小韭菜 · 散户收割机</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 12 — 炒股 Gambling Culture
+         ================================================ -->
+    <section class="slide" id="s12">
+        <div class="slide-content" style="justify-content:center;">
+            <div class="section-label reveal d1">The Culture</div>
+            <h2 class="reveal d2">It's Not "Investing." It's <span class="hanzi-inline" style="font-size:inherit;">炒股</span> (chǎo gǔ).</h2>
+            <div class="red-rule reveal d3"></div>
+            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:var(--gap);">
+                <div class="reveal d3" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem);">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">炒股</p>
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted);">chǎo gǔ</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">"Stir-fry stocks" — high heat, rapid tossing</p>
+                </div>
+                <div class="reveal d3" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem);">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">上车/下车</p>
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted);">shàng chē / xià chē</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">"Board / exit the car" — on the rocket or not</p>
+                </div>
+                <div class="reveal d4" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem);">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">满仓</p>
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted);">mǎn cāng</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">"Full position" — 100% all-in, the Chinese YOLO</p>
+                </div>
+                <div class="reveal d4" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem);">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">割肉</p>
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted);">gē ròu</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">"Cut the meat" — selling at a loss</p>
+                </div>
+                <div class="reveal d5" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem);">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">套牢</p>
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted);">tào láo</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">"Trapped" — stuck holding a loser</p>
+                </div>
+                <div class="reveal d5" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem);">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">站岗</p>
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted);">zhàn gǎng</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">"Standing guard" — holding a dead stock</p>
+                </div>
+                <div class="reveal d6" style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem);">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">坐轿/抬轿</p>
+                    <p style="font-family:var(--font-m); font-size:var(--t-small); color:var(--text-muted);">zuò jiào / tái jiào</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">"Ride / carry the sedan chair" — early in, late carry</p>
+                </div>
+                <div class="reveal d7" style="background:rgba(200,16,46,0.08); border:1px solid var(--red-border); border-radius:4px; padding:clamp(0.5rem,1vw,0.8rem); display:flex; flex-direction:column; justify-content:center;">
+                    <p style="font-size:clamp(1.2rem,2vw,1.6rem); color:var(--red); font-family:var(--font-b); font-weight:700;">65%</p>
+                    <p style="font-size:var(--t-small); color:var(--text-dim); margin-top:0.3em;">of new 2015 investors had <strong style="color:var(--red);">never finished high school</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>炒股 · 上车 · 下车 · 满仓 · 割肉 · 套牢 · 站岗 · 解套 · 割了 · 完蛋了 · 快跑 · 坐轿 · 抬轿</span>
+                <span>炒股 · 上车 · 下车 · 满仓 · 割肉 · 套牢 · 站岗 · 解套 · 割了 · 完蛋了 · 快跑 · 坐轿 · 抬轿</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 13 — 2015 Crash / 关灯吃面
+         ================================================ -->
+    <section class="slide" id="s13">
+        <div class="slide-content" style="justify-content:center;">
+            <div class="section-label reveal d1">The 2015 Crash</div>
+            <h2 class="reveal d2"><span class="hanzi-inline" style="font-size:inherit;">关灯吃面</span> — "Lights Off, Noodles"</h2>
+            <p class="reveal d3" style="font-size:var(--t-small); color:var(--text-muted); margin-bottom:var(--gap-s);">guān dēng chī miàn — Guba's canonical loss meme, born in 2015. A retail investor posted he lost so much he was eating instant noodles alone in the dark. It never left.</p>
+            <div class="two-col">
+                <ul class="blist">
+                    <li class="reveal d3">Shanghai fell <strong style="color:var(--red);">43%</strong> in under 3 months</li>
+                    <li class="reveal d4"><strong>30 million</strong> new brokerage accounts opened in the first 5 months of 2015</li>
+                    <li class="reveal d5">State media (People's Daily) had been urging citizens to invest — the government <strong>recruited the leeks</strong></li>
+                    <li class="reveal d6">A farmer borrowed over <strong style="color:var(--red);">$1M on margin.</strong> Broker urged him to. Lost everything. CNBC filmed him.</li>
+                    <li class="reveal d7">A 28-year-old tried to throw himself in front of a train after losing savings + ¥100k borrowed without telling his wife</li>
+                </ul>
+                <div style="display:flex; flex-direction:column; gap:var(--gap-s);">
+                    <img class="reveal d4" src="sse-crash-chart.png"
+                         alt="Shanghai Composite 2015 crash — candlestick chart showing -65% decline"
+                         style="width:100%; max-height:min(50vh,400px); object-fit:contain; border-radius:4px; border:1px solid var(--red-border);">
+                    <div class="card reveal d5" style="display:flex; align-items:center; gap:var(--gap-s); padding:clamp(0.4rem,1vw,0.8rem);">
+                        <svg viewBox="0 0 80 80" style="width:clamp(60px,5vw,90px); height:clamp(60px,5vw,90px); flex-shrink:0;" aria-label="Instant noodles — 关灯吃面">
+                            <rect width="80" height="80" rx="2" fill="rgba(200,16,46,0.12)" stroke="var(--red-border)" stroke-width="1"/>
+                            <!-- Steam -->
+                            <path d="M25 22 Q27 16 25 10" stroke="rgba(237,232,224,0.3)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+                            <path d="M40 20 Q42 14 40 8" stroke="rgba(237,232,224,0.3)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+                            <path d="M55 22 Q57 16 55 10" stroke="rgba(237,232,224,0.3)" fill="none" stroke-width="1.5" stroke-linecap="round"/>
+                            <!-- Bowl -->
+                            <path d="M12 35 H68 L58 60 Q56 65 50 65 H30 Q24 65 22 60 Z" fill="rgba(200,16,46,0.25)" stroke="var(--red)" stroke-width="1.2"/>
+                            <!-- Noodles -->
+                            <path d="M22 40 Q30 48 38 40 Q46 32 54 40" stroke="rgba(237,232,224,0.4)" fill="none" stroke-width="1.2"/>
+                            <path d="M24 46 Q32 54 40 46 Q48 38 56 46" stroke="rgba(237,232,224,0.3)" fill="none" stroke-width="1"/>
+                            <!-- Chopsticks -->
+                            <line x1="50" y1="28" x2="70" y2="5" stroke="rgba(237,232,224,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+                            <line x1="54" y1="28" x2="74" y2="5" stroke="rgba(237,232,224,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+                            <text x="40" y="76" text-anchor="middle" fill="rgba(237,232,224,0.3)" font-size="6" style="font-family:'Space Mono',monospace">关灯吃面</text>
+                        </svg>
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            <strong style="color:var(--red);">关灯吃面</strong> — "Lights off, noodles."
+                            A retail investor posted he lost so much he was eating instant noodles alone in the dark.
+                        </p>
+                    </div>
+                    <div class="card card-gold reveal d6">
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            Circuit breakers: Jan 1, 2016.
+                            <strong style="color:var(--gold);">Abandoned after 2 trading days</strong> —
+                            triggered a panic stampede instead of stopping one.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>−43% · 30M new accounts · People's Daily "go invest!" · $1M margin call · 关灯吃面</span>
+                <span>Circuit breakers: 2 days. Failed. · 被套 · 割肉 · 完蛋了</span>
+                <span>−43% · 30M new accounts · People's Daily "go invest!" · $1M margin call · 关灯吃面</span>
+                <span>Circuit breakers: 2 days. Failed. · 被套 · 割肉 · 完蛋了</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 14 — 股吧 Guba: China's WSB
+         ================================================ -->
+    <section class="slide" id="s14">
+        <div class="slide-content" style="justify-content:center;">
+            <div class="section-label reveal d1">The Forums</div>
+            <h2 class="reveal d2"><span class="hanzi-inline" style="font-size:inherit;">股吧</span> (Gǔ Bā) — China's WallStreetBets</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col">
+                <ul class="blist">
+                    <li class="reveal d3"><strong>guba.eastmoney.com</strong> — per-stock bulletin boards attached to a live brokerage. Every stock has its own "bar" (吧, bā).</li>
+                    <li class="reveal d4">No upvotes — sorted by recency. 30k views = viral. BlackRock tracks 100,000 posts/day for sentiment signals.</li>
+                    <li class="reveal d5">Forum sentiment <strong>statistically predicts next-day returns</strong> for small/mid-cap stocks — researchers have proven it.</li>
+                    <li class="reveal d6">Paid shills (<strong>托儿, tuō er</strong>) post coordinated bullish content to pump small-caps, then dump.</li>
+                </ul>
+                <div>
+                    <img class="reveal d3" src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Electronic_stock_board_in_Yaesu%2C_Tokyo_2007.jpg/600px-Electronic_stock_board_in_Yaesu%2C_Tokyo_2007.jpg"
+                         alt="Electronic stock ticker board"
+                         style="width:100%; max-height:min(20vh,160px); object-fit:cover; border-radius:2px; border:1px solid var(--red-border); margin-bottom:var(--gap-s);">
+                    <div class="post-card reveal d4" style="margin-bottom:var(--gap-s);">
+                        <p class="post-from">— Hikvision (002415) Forum</p>
+                        <p class="post-body">"I collapsed a 280-billion-yuan company over 3 years"</p>
+                        <p class="post-zh">2800亿的公司被我买崩三年<br><span style="color:var(--text-muted); font-size:0.85em;">2800 yì de gōngsī bèi wǒ mǎi bēng sān nián</span></p>
+                    </div>
+                    <div class="post-card reveal d5" style="margin-bottom:var(--gap-s);">
+                        <p class="post-from">— SAIC Motor (600104) Forum</p>
+                        <p class="post-body">"SAIC took me from marriage to divorce"</p>
+                        <p class="post-zh">上汽把我从结婚炒到离婚<br><span style="color:var(--text-muted); font-size:0.85em;">shàngqì bǎ wǒ cóng jiéhūn chǎo dào líhūn</span></p>
+                    </div>
+                    <div class="post-card reveal d6">
+                        <p class="post-from">— Ping An Bank Forum</p>
+                        <p class="post-body">"Even dogs wouldn't want it, can I?"</p>
+                        <p class="post-zh">狗都不要的东西，我可以吗？<br><span style="color:var(--text-muted); font-size:0.85em;">gǒu dōu bù yào de dōngxi, wǒ kěyǐ ma?</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>guba.eastmoney.com · 股吧 · 托儿 shills · 关灯吃面 · 套了400天 · 是龙你就给我盘着</span>
+                <span>guba.eastmoney.com · 股吧 · 托儿 shills · 关灯吃面 · 套了400天 · 是龙你就给我盘着</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 15 — Real Guba Posts
+         ================================================ -->
+    <section class="slide" id="s15">
+        <div class="slide-content">
+            <div class="section-label reveal d1">Actual Posts, Translated</div>
+            <h2 class="reveal d2">The Voice of 220M Retail Investors</h2>
+            <div class="red-rule reveal d3"></div>
+            <img class="reveal d2" src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Gubahlogo.png"
+                 alt="股吧 Guba logo"
+                 loading="eager"
+                 style="height:clamp(24px,3vh,40px); opacity:0.6; margin-bottom:var(--gap-s);">
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%,210px),1fr)); justify-items: center; align-content: center;">
+                <div class="post-card reveal d3">
+                    <p class="post-from">Wanfeng Forum</p>
+                    <p class="post-body">"Cried all day. Eyes too swollen to open."</p>
+                    <p class="post-zh">哭了一天了，眼睛肿的睁不开<br><span style="color:var(--text-muted); font-size:0.85em;">kū le yī tiān le, yǎnjing zhǒng de zhēng bù kāi</span></p>
+                </div>
+                <div class="post-card reveal d4">
+                    <p class="post-from">SSE Index Forum</p>
+                    <p class="post-body">"Tonight sleepless — regarding tomorrow's A-shares, a few final reminders."</p>
+                    <p class="post-zh">今晚无眠——关于明天的A股，最后几点提醒<br><span style="color:var(--text-muted); font-size:0.85em;">jīnwǎn wú mián — guānyú míngtiān de A gǔ, zuìhòu jǐ diǎn tíxǐng</span></p>
+                </div>
+                <div class="post-card reveal d5">
+                    <p class="post-from">iFlytek Forum</p>
+                    <p class="post-body">"The bigger the good news, the worse it falls."</p>
+                    <p class="post-zh">利好越大，跌得越狠<br><span style="color:var(--text-muted); font-size:0.85em;">lìhǎo yuè dà, diē de yuè hěn</span></p>
+                </div>
+                <div class="post-card reveal d6">
+                    <p class="post-from">Any Forum, Universal</p>
+                    <p class="post-body">"If you're a dragon, coil. If a dog, lie down. If trash — stay putrid."</p>
+                    <p class="post-zh">是龙你就盘着，是狗你就趴着，是垃圾你就臭着<br><span style="color:var(--text-muted); font-size:0.85em;">shì lóng nǐ jiù pán zhe, shì gǒu nǐ jiù pā zhe, shì lājī nǐ jiù chòu zhe</span></p>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>哭了一天 · 眼睛肿 · 被套400天 · 是垃圾你继续臭着 · 火箭发射大涨0.3% · 天天亏钱还不如买彩票</span>
+                <span>哭了一天 · 眼睛肿 · 被套400天 · 是垃圾你继续臭着 · 火箭发射大涨0.3% · 天天亏钱还不如买彩票</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 16 — The Big V Whale Parallel
+         ================================================ -->
+    <section class="slide" id="s16">
+        <div class="slide-content">
+            <div class="section-label reveal d1">Who Do Retail Investors Follow?</div>
+            <h2 class="reveal d2">China's "Wall Street": The <span class="hanzi-inline" style="font-size:inherit;">大V</span> (Dà V)</h2>
+            <div class="red-rule reveal d3"></div>
+            <table class="ctable reveal d4">
+                <thead>
+                    <tr><th></th><th>🇺🇸 USA</th><th>🇨🇳 China</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>The "whales"</td>
+                        <td>Goldman Sachs, BlackRock, JPMorgan</td>
+                        <td class="cn">大V forum influencers, "stock god" fund managers</td>
+                    </tr>
+                    <tr>
+                        <td>Where tips come from</td>
+                        <td>Bloomberg, analyst reports, 13-F filings</td>
+                        <td class="cn">Weibo, 雪球 Xueqiu (xueqiu.com), 股吧 Guba, WeChat groups</td>
+                    </tr>
+                    <tr>
+                        <td>Copy-trading</td>
+                        <td>Mirror funds (rare)</td>
+                        <td class="cn">Xueqiu's notification system — 57M users get real-time trade alerts</td>
+                    </tr>
+                    <tr>
+                        <td>When a whale gets busted</td>
+                        <td>SEC charges and fines</td>
+                        <td class="cn">Highway patrol seals off a 35km bridge</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="reveal d5" style="margin-top:var(--gap-s); font-size:var(--t-small); color:var(--text-muted);">
+                FactSet sells "Guba Analytics" and "Xueqiu Analytics" as institutional products — proof that Chinese retail sentiment moves markets.
+            </p>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>大V · Xueqiu 雪球 · xueqiu.com · 聪明钱 smart money · copy trading · 57M users · Guba 股吧</span>
+                <span>大V · Xueqiu 雪球 · xueqiu.com · 聪明钱 smart money · copy trading · 57M users · Guba 股吧</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 17 — Xu Xiang Case Study
+         ================================================ -->
+    <section class="slide" id="s17">
+        <div class="slide-content" style="justify-content:center;">
+            <div class="section-label reveal d1">Case Study: The Stock God Who Was Robbing You</div>
+            <h2 class="reveal d2"><span class="hanzi-inline" style="font-size:inherit;">徐翔</span> Xú Xiāng — "Hedge Fund Brother No. 1"</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col">
+                <ul class="blist">
+                    <li class="reveal d3">Started at <strong>age 17</strong>, skipped college, used parents' money</li>
+                    <li class="reveal d4">By 2015: <strong>3,000% return since 2010.</strong> Retail investors on Guba worshipped him. His trades were religiously copied.</li>
+                    <li class="reveal d5">Reality: conspiring with management of <strong style="color:var(--red);">13 listed companies simultaneously</strong> — timed their announcements to his buy orders, then dumped on his followers</li>
+                    <li class="reveal d6">Nov 2015: police <strong style="color:var(--red);">sealed off the 35km Hangzhou Bay Bridge</strong> to arrest him in his car. He was photographed in handcuffs in an Armani suit.</li>
+                </ul>
+                <div>
+                    <img class="reveal d3" src="https://static.ffx.io/images/$zoom_1%2C$multiply_0.5034%2C$ratio_0.666667%2C$width_1160%2C$x_0%2C$y_53/t_crop_custom/q_86%2Cf_auto/e9d287557f80dedd89892261aa065bd1c68edbba"
+                         alt="Xu Xiang — China's biggest stock market fraudster"
+                         style="width:100%; max-height:min(28vh,220px); object-fit:cover; border-radius:2px; border:1px solid var(--red-border); margin-bottom:var(--gap-s);">
+                    <div class="card reveal d4" style="margin-bottom:var(--gap-s);">
+                        <div class="stat-num">¥11B</div>
+                        <div class="stat-label">Fine — largest individual white-collar fine in Chinese history</div>
+                    </div>
+                    <div class="card card-gold reveal d6">
+                        <p style="font-size:var(--t-small); color:var(--text-dim);">
+                            The man retail investors copied as a "stock god"
+                            had been <span style="color:var(--gold);">systematically harvesting them as leeks</span> the entire time.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>徐翔 · 私募一哥 · 3000% return · 13 companies · Hangzhou Bay Bridge sealed off</span>
+                <span>Armani suit + handcuffs · ¥11B fine · 5.5 years prison · 2017</span>
+                <span>徐翔 · 私募一哥 · 3000% return · 13 companies · Hangzhou Bay Bridge sealed off</span>
+                <span>Armani suit + handcuffs · ¥11B fine · 5.5 years prison · 2017</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 17b — BHAT Anecdote (Real Stock Dump)
+         ================================================ -->
+    <section class="slide no-ticker" id="s17b">
+        <div class="slide-content" style="justify-content:center; align-items:center;">
+            <div class="section-label reveal d1">Real Example — My First Chinese Small-Cap</div>
+            <h2 class="reveal d2" style="text-align:center;">BHAT — Blue Hat Interactive Entertainment Technology</h2>
+            <div class="red-rule reveal d3"></div>
+            <img class="reveal d4" src="bhat-chart.png"
+                 alt="BHAT stock chart — $76,000 to $1.10, down 100%"
+                 style="max-height:min(60vh,520px); border-radius:4px; border:1px solid var(--red-border); margin-top:var(--gap);">
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 18 — 国家队 The National Team
+         ================================================ -->
+    <section class="slide" id="s18">
+        <div class="slide-content">
+            <div class="section-label reveal d1">The Ultimate Whale</div>
+            <h2 class="reveal d2"><span class="hanzi-inline" style="font-size:inherit;">国家队</span> (Guójiā Duì) — The National Team</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col">
+                <ul class="blist">
+                    <li class="reveal d3">State-backed funds that <strong>directly buy stocks to prop up the market</strong> — Central Huijin, China Securities Finance Corp., NSSF</li>
+                    <li class="reveal d4">Born in the 2015 crash: bought positions in <strong style="color:var(--red);">1,406+ companies</strong> to stop the freefall</li>
+                    <li class="reveal d5">Jan 2024: <strong style="color:var(--red);">$17B into four CSI 300 ETFs in one month</strong> — surpassed only by S&amp;P 500 ETF inflows globally, despite China's market being 18× smaller</li>
+                    <li class="reveal d6">Research: detecting the national team's footprint was <strong>more profitable than reading quarterly earnings</strong></li>
+                </ul>
+                <div>
+                    <div class="card reveal d4" style="margin-bottom:var(--gap-s);">
+                        <div class="stat-num">¥4T</div>
+                        <div class="stat-label">Estimated national team A-share holdings</div>
+                    </div>
+                    <div class="card card-gold reveal d6">
+                        <p class="quote-text" style="font-size:clamp(0.8rem,1.6vw,1rem);">The market is explicitly a tool of state economic policy — not a free capital market.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>国家队 · Central Huijin · 1406 companies · $17B in one month · $180B ETF holdings · state policy tool</span>
+                <span>国家队 · Central Huijin · 1406 companies · $17B in one month · $180B ETF holdings · state policy tool</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 19 — Superstitions & Bullshit Strategies
+         ================================================ -->
+    <section class="slide" id="s19" style="position:relative;">
+        <div class="slide-content">
+            <div class="section-label reveal d1">The Bullshit Strategies</div>
+            <h2 class="reveal d2">Chinese Stock Market Astrology</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="two-col">
+                <ul class="blist">
+                    <li class="reveal d3"><strong>风水 (Fēngshuǐ) Indices:</strong> CLSA has published an annual Feng Shui Index since 1992. 2025 prediction: "Bitcoin will suffer — the Snake year lacks metal and coins in the bazi chart." Two brokerages got official CSRC warnings for publishing feng shui research.</li>
+                    <li class="reveal d4"><strong>Lucky 8 (八, bā = prosper), Unlucky 4 (四, sì = death):</strong> 26% of Chinese IPO prices end in 8 (vs. 10% expected). Alibaba IPO: $68. Ticker: BABA. Olympics: 8:08:08 on 08/08/08.</li>
+                    <li class="reveal d5"><strong>主力 (Zhǔlì) "Main Force" Theory:</strong> Every stock move is orchestrated by a hidden big player. Retail investors read K-line patterns to decode it and follow along before getting dumped on.</li>
+                </ul>
+                <ul class="blist">
+                    <li class="reveal d4"><strong>庄家 (Zhuāngjiā) Chasing:</strong> Courses sold for ¥6,800 on how to ride manipulated stocks. 200+ books on Amazon China. The house always wins: <em style="color:var(--text-dim);">"You get the soup, never the meat."</em></li>
+                    <li class="reveal d5"><strong>缠论 (Chán Lùn):</strong> 2006. An anonymous blogger mixed fractal geometry + Zen Buddhism into a trading system. Identity still unknown. Has a GitHub repo, a podcast series called "108 Lessons" (108 = sacred Buddhist number), and a devoted cult following.</li>
+                    <li class="reveal d6"><strong>Red = UP, Green = DOWN:</strong> The opposite of every Western market. Chinese investors train themselves to love the color that signals danger to everyone else.</li>
+                </ul>
+            </div>
+        </div>
+        <!-- Decorative K-line (candlestick) pattern background — Chinese convention: red=UP, green=DOWN -->
+        <svg aria-hidden="true" viewBox="0 0 180 130" style="position:absolute; right:var(--pad); bottom:2.5rem; width:min(20vw,155px); opacity:0.13; pointer-events:none; z-index:0;" xmlns="http://www.w3.org/2000/svg">
+            <!-- Candle 1: bearish (green/down) -->
+            <line x1="16" y1="28" x2="16" y2="36" stroke="#00A550" stroke-width="1.5"/>
+            <rect x="10" y="36" width="12" height="28" fill="#00A550"/>
+            <line x1="16" y1="64" x2="16" y2="73" stroke="#00A550" stroke-width="1.5"/>
+            <!-- Candle 2: bullish (red/up) -->
+            <line x1="34" y1="32" x2="34" y2="40" stroke="#C8102E" stroke-width="1.5"/>
+            <rect x="28" y="40" width="12" height="22" fill="#C8102E"/>
+            <line x1="34" y1="62" x2="34" y2="70" stroke="#C8102E" stroke-width="1.5"/>
+            <!-- Candle 3: bearish (green/down) large — the crash candle -->
+            <line x1="52" y1="22" x2="52" y2="30" stroke="#00A550" stroke-width="1.5"/>
+            <rect x="46" y="30" width="12" height="42" fill="#00A550"/>
+            <line x1="52" y1="72" x2="52" y2="82" stroke="#00A550" stroke-width="1.5"/>
+            <!-- Candle 4: bearish (green/down) -->
+            <line x1="70" y1="50" x2="70" y2="58" stroke="#00A550" stroke-width="1.5"/>
+            <rect x="64" y="58" width="12" height="34" fill="#00A550"/>
+            <line x1="70" y1="92" x2="70" y2="100" stroke="#00A550" stroke-width="1.5"/>
+            <!-- Candle 5: small bullish (red/up) — doji-like -->
+            <line x1="88" y1="72" x2="88" y2="80" stroke="#C8102E" stroke-width="1.5"/>
+            <rect x="82" y="80" width="12" height="10" fill="#C8102E"/>
+            <line x1="88" y1="90" x2="88" y2="98" stroke="#C8102E" stroke-width="1.5"/>
+            <!-- Candle 6: bullish (red/up) recovery -->
+            <line x1="106" y1="62" x2="106" y2="70" stroke="#C8102E" stroke-width="1.5"/>
+            <rect x="100" y="70" width="12" height="24" fill="#C8102E"/>
+            <line x1="106" y1="94" x2="106" y2="102" stroke="#C8102E" stroke-width="1.5"/>
+            <!-- Pattern label -->
+            <text x="10" y="120" fill="#C8102E" font-size="11" style="font-family:'Noto Serif SC',serif;">乌云盖顶</text>
+            <text x="10" y="130" fill="rgba(237,232,224,0.6)" font-size="7" style="font-family:'Space Mono',monospace;">Dark Cloud Cover</text>
+        </svg>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>风水 fēngshuǐ · 八字 bāzì · 主力 zhǔlì · 庄家 zhuāngjiā · 缠论 chán lùn · 108课</span>
+                <span>K线 · 旭日东升 · 乌云盖顶 · 墓碑十字星 · Lucky 8 · 红=涨 · 绿=跌</span>
+                <span>风水 fēngshuǐ · 八字 bāzì · 主力 zhǔlì · 庄家 zhuāngjiā · 缠论 chán lùn · 108课</span>
+                <span>K线 · 旭日东升 · 乌云盖顶 · 墓碑十字星 · Lucky 8 · 红=涨 · 绿=跌</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         SLIDE 20 — CONCLUSION
+         ================================================ -->
+    <section class="slide" id="s20">
+        <div class="slide-content">
+            <div class="section-label reveal d1">The Big Picture</div>
+            <h2 class="reveal d2">Why Does China's Market Feel Like a Casino?</h2>
+            <div class="red-rule reveal d3"></div>
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));">
+                <div class="card reveal d3">
+                    <p style="font-size:var(--t-small); color:var(--red); font-family:var(--font-m); margin-bottom:0.4rem;">STRUCTURE</p>
+                    <p style="font-size:var(--t-body); color:var(--text-dim);">Retail drives 80–90% of volume. No short sellers to correct overvaluation. Daily limits trap investors in bad positions.</p>
+                </div>
+                <div class="card card-gold reveal d4">
+                    <p style="font-size:var(--t-small); color:var(--gold); font-family:var(--font-m); margin-bottom:0.4rem;">CULTURE</p>
+                    <p style="font-size:var(--t-body); color:var(--text-dim);">炒股 (chǎo gǔ) = stir-fry. 韭菜 (jiǔcài) = leeks. Gambling is culturally normalized. The market is seen as fate and luck — not fundamentals.</p>
+                </div>
+                <div class="card reveal d5">
+                    <p style="font-size:var(--t-small); color:var(--red); font-family:var(--font-m); margin-bottom:0.4rem;">INFORMATION</p>
+                    <p style="font-size:var(--t-body); color:var(--text-dim);">No independent Wall Street. Retail follows forum Big Vs, "stock gods," and government signals instead of earnings.</p>
+                </div>
+                <div class="card card-gold reveal d6">
+                    <p style="font-size:var(--t-small); color:var(--gold); font-family:var(--font-m); margin-bottom:0.4rem;">THE STATE</p>
+                    <p style="font-size:var(--t-body); color:var(--text-dim);">The government is both the regulator AND the biggest whale. The market is a policy tool — not a free capital market.</p>
+                </div>
+            </div>
+            <p class="reveal d7" style="margin-top:var(--gap); font-size:var(--t-body); text-align:center; color:var(--text-dim);">
+                220 million leeks. One very large pair of scissors. <span style="color:var(--red);">谢谢 (xièxiè) — Thank You</span>
+            </p>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>谢谢观看 · Thank You · 220 million leeks · 一把大剪刀 one big pair of scissors · 韭菜 · 割韭菜 · 关灯吃面</span>
+                <span>谢谢观看 · Thank You · 220 million leeks · 一把大剪刀 one big pair of scissors · 韭菜 · 割韭菜 · 关灯吃面</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- SLIDE — Work Cited (Jorge's sources) — moved to end -->
+    <section class="slide" id="s8">
+        <div class="slide-content">
+            <div class="section-label reveal d1">Part 01 · References</div>
+            <h2 class="reveal d2">Work Cited</h2>
+            <div class="red-rule reveal d3"></div>
+            <ul class="blist" style="max-width:70ch;">
+                <li class="reveal d3">Peng, Xinwei. <em>A Monetary History of China.</em> Western Washington University, 1994.</li>
+                <li class="reveal d4">Von Glahn, Richard. <em>Fountain of Fortune: Money and Monetary Policy in China, 1000–1700.</em> UC Press, 1996.</li>
+                <li class="reveal d5">Naughton, Barry. <em>The Chinese Economy: Adaptation and Growth.</em> MIT Press, 2018.</li>
+                <li class="reveal d6">Walter, Carl E., and Fraser J. T. Howie. <em>Red Capitalism: The Fragile Financial Foundation of China's Extraordinary Rise.</em> Wiley, 2011.</li>
+                <li class="reveal d7">Green, Stephen. <em>China's Stock Market: A Guide to Its Progress, Players and Prospects.</em> Bloomberg Press, 2003.</li>
+            </ul>
+        </div>
+        <div class="ticker" aria-hidden="true">
+            <div class="ticker-inner">
+                <span>贝 → 半两 → 飞钱 → 交子 → 股票</span><span>Shell → Coin → Flying Money → Paper → Stock</span>
+                <span>贝 → 半两 → 飞钱 → 交子 → 股票</span><span>Shell → Coin → Flying Money → Paper → Stock</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ================================================
+         JAVASCRIPT — SlidePresentation Controller
+         ================================================ -->
+    <script>
+        /* === SLIDE PRESENTATION CONTROLLER ===
+         * Handles: keyboard nav, touch/swipe, scroll snap,
+         * intersection observer for animations, progress bar, nav dots.
+         * Customize: arrow keys + space navigate between slides.
+         */
+        class SlidePresentation {
+            constructor() {
+                this.slides      = Array.from(document.querySelectorAll('.slide'));
+                this.current     = 0;
+                this.progBar     = document.getElementById('progressBar');
+                this.navContainer = document.getElementById('navDots');
+                this.isScrolling = false;
+
+                this.buildNavDots();
+                this.setupIntersectionObserver();
+                this.setupKeyboard();
+                this.setupTouch();
+                this.setupWheel();
+            }
+
+            /* --- Build nav dots from slide count --- */
+            buildNavDots() {
+                this.slides.forEach((_, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'nav-dot';
+                    btn.setAttribute('aria-label', `Slide ${i + 1}`);
+                    btn.addEventListener('click', () => this.goTo(i));
+                    this.navContainer.appendChild(btn);
+                });
+                this.sync(0);
+            }
+
+            /* --- IntersectionObserver: adds .visible when slide enters viewport --- */
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver(entries => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            const i = this.slides.indexOf(entry.target);
+                            if (i !== -1) this.sync(i);
+                        }
+                    });
+                }, { threshold: 0.55 });
+
+                this.slides.forEach(s => observer.observe(s));
+            }
+
+            /* --- Keyboard: arrows, space, page up/down --- */
+            setupKeyboard() {
+                document.addEventListener('keydown', e => {
+                    const next = ['ArrowDown','ArrowRight',' ','PageDown'];
+                    const prev = ['ArrowUp','ArrowLeft','PageUp'];
+                    if (next.includes(e.key)) { e.preventDefault(); this.goTo(this.current + 1); }
+                    if (prev.includes(e.key)) { e.preventDefault(); this.goTo(this.current - 1); }
+                });
+            }
+
+            /* --- Touch: swipe up/down --- */
+            setupTouch() {
+                let startY = 0;
+                document.addEventListener('touchstart', e => {
+                    startY = e.touches[0].clientY;
+                }, { passive: true });
+                document.addEventListener('touchend', e => {
+                    const diff = startY - e.changedTouches[0].clientY;
+                    if (Math.abs(diff) > 45) this.goTo(this.current + (diff > 0 ? 1 : -1));
+                }, { passive: true });
+            }
+
+            /* --- Mouse wheel: one slide per wheel gesture --- */
+            setupWheel() {
+                document.addEventListener('wheel', e => {
+                    if (this.isScrolling) return;
+                    if (Math.abs(e.deltaY) < 30) return;
+                    this.isScrolling = true;
+                    this.goTo(this.current + (e.deltaY > 0 ? 1 : -1));
+                    setTimeout(() => this.isScrolling = false, 700);
+                }, { passive: true });
+            }
+
+            /* --- Navigate to slide n --- */
+            goTo(n) {
+                const target = Math.max(0, Math.min(n, this.slides.length - 1));
+                this.slides[target].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            /* --- Sync progress bar and nav dots to current slide --- */
+            sync(i) {
+                this.current = i;
+
+                // Progress bar
+                const pct = (i / (this.slides.length - 1)) * 100;
+                if (this.progBar) this.progBar.style.width = pct + '%';
+
+                // Nav dots
+                document.querySelectorAll('.nav-dot').forEach((dot, idx) => {
+                    dot.classList.toggle('active', idx === i);
+                });
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => new SlidePresentation());
+    </script>
+
+</body>
+</html>
