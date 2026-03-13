@@ -1380,6 +1380,7 @@
                 this.setupKeyboard();
                 this.setupTouch();
                 this.setupWheel();
+                this.setupClick();
             }
 
             /* --- Build nav dots from slide count --- */
@@ -1429,6 +1430,17 @@
                     const diff = startY - e.changedTouches[0].clientY;
                     if (Math.abs(diff) > 45) this.goTo(this.current + (diff > 0 ? 1 : -1));
                 }, { passive: true });
+            }
+
+            /* --- Click: left-click advances, right-third clicks go back --- */
+            setupClick() {
+                document.addEventListener('click', e => {
+                    // Ignore clicks on nav dots, links, buttons
+                    if (e.target.closest('.nav-dot, a, button, .nav-dots')) return;
+                    const x = e.clientX / window.innerWidth;
+                    this.goTo(this.current + (x < 0.25 ? -1 : 1));
+                });
+                // Disable context menu so right-click doesn't interfere
             }
 
             /* --- Mouse wheel: one slide per wheel gesture --- */
